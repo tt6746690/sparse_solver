@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(sparse_solvers)
 
+set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option(WITH_DEBUG "Enable debugging" ON)
@@ -13,6 +14,8 @@ else()
     add_compile_options(-O3)
     add_definitions(-DNDEBUG)
 endif()
+
+add_compile_options(-Wno-writable-strings)
 
 
 file(GLOB SRCFILES 
