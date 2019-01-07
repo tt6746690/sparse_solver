@@ -15,11 +15,17 @@ public:
     COO(const char* file);
     ~COO();
 public:
+    // number of rows
     int m;
+    // number of columns
     int n;
+    // number of nonzero entries
     int nnz;
+    // row indices                  size: nnz
     int* rowidx;
+    // column indices               size: nnz
     int* colidx;
+    // value of nonezro entries     size: nnz
     T* values;
 };
 
@@ -31,12 +37,139 @@ void loadMatrixMarket(
     COO<T>& coo);
 
 
+// Compressed sparse column format (CSC)
+
+template <typename T>
+class CSC {
+public:
+    CSC();
+    // `file` contains matrix market format
+    CSC(const char* file);
+    ~CSC();
+public:
+    // number of rows
+    int m;
+    // number of columns
+    int n;
+    // number of nonzero entries
+    int nnz;
+    // column pointers              size: n+1
+    int* p;
+    // row indices                  size: nnz
+    int* i;
+    // value of nonezro entries     size: nnz
+    T*   x;
+};
+
+// Converts COO -> CSC
+template <typename T>
+void coo_to_csc(
+    const COO<T>& coo,
+    CSC<T>& csc);
+
+
+template <typename T> 
+void show_csc(const CSC<T>& csc);
+
+
 // Implementation
 
 #include <cstddef>
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <vector>
+#include <algorithm>
+
+template <typename T>
+CSC<T>::CSC()
+    : m(0), n(0), nnz(0), p(nullptr), i(nullptr), x(nullptr)
+    {};
+
+
+template <typename T>
+CSC<T>::CSC(const char* file) {
+    auto coo = COO<T>(file);
+    coo_to_csc(coo, *this);
+}
+
+template <typename T>
+CSC<T>::~CSC()
+{
+    if (p) free(p);
+    if (i) free(i);
+    if (x) free(x);
+}
+
+template <typename T>
+void coo_to_csc(
+    const COO<T>& coo,
+    CSC<T>& csc)
+{
+    int m = coo.m;
+    int n = coo.n;
+    int nnz = coo.nnz;
+
+    csc.~CSC();
+    csc.p = (int*) malloc((n+1) * sizeof(int));
+    csc.i = (int*) malloc(nnz * sizeof(int));
+    csc.x = (T*)   malloc(nnz * sizeof(T));
+
+    for (int i = 0; i <= n; ++i)  csc.p[i] = 0;
+    for (int i = 0; i < nnz; ++i) csc.p[coo.colidx[i]+1] += 1;
+    for (int i = 0; i < n; ++i)   csc.p[i+1] += csc.p[i];
+
+    struct ix_t {
+        int i;
+        T   x;
+    };
+    std::vector<ix_t>  ixs(nnz);
+
+    // fill in `x` and `i`
+    for (int i = 0; i < nnz; ++i) {
+        int c = csc.p[coo.colidx[i]];
+        ixs[c].i = coo.rowidx[i];
+        ixs[c].x = coo.values[i];
+        csc.p[coo.colidx[i]] += 1;
+    }
+
+    // shift back column pointers
+    for (int i = n; i > 0; --i) csc.p[i] = csc.p[i-1];
+    csc.p[0] = 0;
+
+    // sort ixs
+    for (int i = 0; i < n; ++i) {
+        std::sort(ixs.begin()+csc.p[i], ixs.begin()+csc.p[i+1],
+            [](const ix_t& a, const ix_t& b){ return a.i < b.i; });
+    }
+
+    for (int i = 0; i < nnz; ++i) {
+        csc.i[i] = ixs[i].i;
+        csc.x[i] = ixs[i].x;
+    }
+
+    csc.m = m;
+    csc.n = n;
+    csc.nnz = nnz;
+}
+
+template <typename T> 
+void show_csc(const CSC<T>& csc)
+{
+    int n = std::min(csc.n, 10)+1;
+    int nnz = std::min(csc.nnz, 10);
+    printf("CSC: (%d, %d, %d)\n", csc.m, csc.n, csc.nnz);
+    printf("p[:%d]: ", n);
+    for (int i = 0; i < n; ++i) printf("%d ", csc.p[i]);
+    printf("\n");
+    printf("i[:%d]: ", nnz);
+    for (int i = 0; i < nnz; ++i) printf("%d ", csc.i[i]);
+    printf("\n");
+    printf("x[:%d]: ", nnz);
+    for (int i = 0; i < nnz; ++i) printf("%f ", (float)csc.x[i]);
+    printf("\n");
+}
+
 
 template <typename T>
 COO<T>::COO() 
@@ -78,15 +211,11 @@ void loadMatrixMarket(
         exit(-1);
     }
 
-    // size of matrix
-
     int m, n, nnz;
     if (mm_read_mtx_crd_size(fp, &m, &n, &nnz) != 0) {
         fprintf(stderr, "Error: could not read matrix size\n");
         exit(-1);
     }
-
-    // memory allocation
 
     int* rowidx = (int*) malloc(nnz * sizeof(int));
     int* colidx = (int*) malloc(nnz * sizeof(int));

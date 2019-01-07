@@ -1,5 +1,6 @@
 #include "naive.h"
 
+
 int lsolve(int n, int* Lp, int* Li, double* Lx, double *x){
     int p = 0, j = 0;
     if (!Lp || !Li || !x) return (0) ; /* check inputs */
