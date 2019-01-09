@@ -34,7 +34,7 @@ template <typename T>
 inline bool operator==(const COO<T>& lhs, const COO<T>& rhs);
 
 
-// load `.mtx` -> coordinate format 
+// load/save `.mtx` -> coordinate format 
 //
 //  lower_triangular: bool
 //      keep nonzeros when  `rowidx <= colidx`
@@ -43,6 +43,11 @@ void loadMatrixMarket(
     const char* file,
     COO<T>& coo,
     bool lower_triangular);
+
+template <typename T>
+void saveMatrixMarket(
+    const char* file,
+    const COO<T>& coo);
 
 
 // Compressed sparse column format (CSC)
@@ -126,7 +131,7 @@ void loadMatrixMarket(
     bool lower_triangular)
 {
     FILE* fp = fopen(file, "r");
-    if (fp == NULL) {
+    if (fp  == NULL) {
         fprintf(stderr, "Failed to open file %s\n", file);
         exit(-1);
     }
@@ -193,6 +198,29 @@ void loadMatrixMarket(
 }
 
 template <typename T>
+void saveMatrixMarket(
+    const char* file,
+    const COO<T>& coo)
+{
+    FILE *fp = fopen(file, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "Fail to open file %s\n", file);
+        exit(-1);
+    }
+
+    MM_typecode matcode;
+    mm_initialize_typecode(&matcode);
+    mm_set_matrix(&matcode);
+    mm_set_coordinate(&matcode);
+    mm_set_real(&matcode);
+
+    if (int err = mm_write_mtx_crd((char *)file, 
+            coo.m, coo.n, coo.nnz, coo.rowidx, coo.colidx, coo.values, matcode, 0)) {
+        fprintf(stderr, "Fail to write matrix to %s (error code = %d)\n", file, err);
+    }
+}
+
+template <typename T>
 inline bool operator==(const COO<T>& lhs, const COO<T>& rhs)
 {
     if (lhs.m == rhs.m && lhs.n == rhs.n && lhs.nnz == rhs.nnz &&
@@ -207,7 +235,6 @@ inline bool operator==(const COO<T>& lhs, const COO<T>& rhs)
 
 
 // CSC
-
 
 template <typename T>
 CSC<T>::CSC()
@@ -249,6 +276,7 @@ void csc_to_vec(
     std::vector<T>& v)
 {
     assert(coo.n == 1);
+    v.clear();
     v.resize(coo.m, 0);
     for (int i = 0; i < coo.nnz; ++i)
         v[coo.i[i]] = coo.x[i];

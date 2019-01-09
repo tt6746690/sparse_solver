@@ -6,6 +6,10 @@
 
 
 ```
+cmake -DWITH_DEBUG=OFF ..
+make
+
+
 lldb build/main
 process launch
 ```

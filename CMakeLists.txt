@@ -19,7 +19,10 @@ endif()
 
 add_compile_options(-Wno-writable-strings)
 
+# Catch2 
 add_subdirectory(Catch2)
+# minitrace
+add_definitions(-DMTR_ENABLED)
 
 file(GLOB SRCFILES 
     src/*.h

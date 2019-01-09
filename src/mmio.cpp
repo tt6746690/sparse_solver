@@ -329,10 +329,12 @@ int mm_write_banner(FILE *f, MM_typecode matcode)
 }
 
 int mm_write_mtx_crd(char fname[], int M, int N, int nz, int I[], int J[],
-        double val[], MM_typecode matcode)
+        double val[], MM_typecode matcode, int base)
 {
     FILE *f;
     int i;
+
+    base = 1 - base;
 
     if (strcmp(fname, "stdout") == 0) 
         f = stdout;
@@ -350,15 +352,15 @@ int mm_write_mtx_crd(char fname[], int M, int N, int nz, int I[], int J[],
     /* print values */
     if (mm_is_pattern(matcode))
         for (i=0; i<nz; i++)
-            fprintf(f, "%d %d\n", I[i], J[i]);
+            fprintf(f, "%d %d\n", I[i]+base, J[i]+base);
     else
     if (mm_is_real(matcode))
         for (i=0; i<nz; i++)
-            fprintf(f, "%d %d %20.16g\n", I[i], J[i], val[i]);
+            fprintf(f, "%d %d %20.16g\n", I[i]+base, J[i]+base, val[i]);
     else
     if (mm_is_complex(matcode))
         for (i=0; i<nz; i++)
-            fprintf(f, "%d %d %20.16g %20.16g\n", I[i], J[i], val[2*i], 
+            fprintf(f, "%d %d %20.16g %20.16g\n", I[i]+base, J[i]+base, val[2*i], 
                         val[2*i+1]);
     else
     {

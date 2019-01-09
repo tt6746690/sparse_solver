@@ -7,13 +7,17 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <functional>
 
-#include "src/naive.h"
+#include "src/triangular.h"
+#include "src/multiply.h"
 #include "src/formats.h"
 
 using namespace std;
 
-// Formats
+string Lp = "./data/smallL.mtx";
+string bp = "./data/smallb.mtx";
 
 TEST_CASE("formats") {
 
@@ -22,8 +26,8 @@ TEST_CASE("formats") {
         int m, int n, int nnz, 
         const vector<int>& r, const vector<int>&c, const vector<double>& x)
     {
-        COO<double> M = COO<double>(path_to_mtx.c_str());
-        COO<double> expectedM = COO<double>();
+        auto M = COO<double>(path_to_mtx.c_str());
+        auto expectedM = COO<double>();
         expectedM.m = m;
         expectedM.n = n;
         expectedM.nnz = nnz;
@@ -41,8 +45,8 @@ TEST_CASE("formats") {
         int m, int n, int nnz,
         const vector<int>& p, const vector<int>&i, const vector<double>& x)
     {
-        CSC<double> M = CSC<double>(path_to_mtx.c_str());
-        CSC<double> expectedM = CSC<double>();
+        auto M = CSC<double>(path_to_mtx.c_str());
+        auto expectedM = CSC<double>();
         expectedM.m = m;
         expectedM.n = n;
         expectedM.nnz = nnz;
@@ -55,8 +59,6 @@ TEST_CASE("formats") {
         REQUIRE(expectedM == M);
     };
 
-    string Lp = "./data/small/L.mtx";
-    string bp = "./data/small/b.mtx";
 
     SECTION("L") {
         vector<int> p = { 0, 2, 4, 6, 9 };
@@ -77,34 +79,57 @@ TEST_CASE("formats") {
     }
 }
 
+using lsolveT = function<int (int, int*, int*, double*, double*)>;
 
+const auto test_lsolve = [](
+    lsolveT solver,
+    const string& Lp, const string& bp,
+    const vector<double> expected_x)
+{
+    auto L = CSC<double>(Lp.c_str(), true);
+    auto b = CSC<double>(bp.c_str(), true);
+    assert(L.m == L.n);
 
-TEST_CASE("triangular solve") {
+    vector<double> x;
+    csc_to_vec(b, x);
+    solver(L.n, L.p, L.i, L.x, x.data());
+    for (int i = 0; i < x.size(); ++i) {
+        REQUIRE(expected_x[i] == Approx(x[i]));
+    }
+};
 
-    string Lp = "./data/small/L.mtx";
-    string bp = "./data/small/b.mtx";
+TEST_CASE("triangular_small") {
 
     auto L = CSC<double>(Lp.c_str());
     auto b = CSC<double>(bp.c_str());
 
-    const auto test_lsolve = [](
-        const string& Lp, const string& bp,
-        const vector<double> expected_x)
-    {
-        auto L = CSC<double>(Lp.c_str(), true);
-        auto b = CSC<double>(bp.c_str(), true);
-        assert(L.m == L.n);
+    vector<double> sol = { 1./7., 1., 0., 1. };
+    test_lsolve(lsolve_simple, Lp, bp, sol);
+    test_lsolve(lsolve_eigen, Lp, bp, sol);
 
-        vector<double> x;
-        csc_to_vec(b, x);
-        lsolve(L.n, L.p, L.i, L.x, x.data());
-        for (int i = 0; i < x.size(); ++i) {
-            REQUIRE(expected_x[i] == Approx(x[i]));
-        }
+}
+
+
+TEST_CASE("triangular_large", "[.][long]") {
+    const auto tovec = [](const string& file, vector<double>& v) {
+        v.clear();
+        ifstream in(file);
+        string l;
+        while(std::getline(in, l)) 
+            v.push_back(stod(l));
+    };
+    const auto tofile = [](const string& file, const vector<double>& v) {
+        ofstream out(file);
+        for (auto x : v) 
+            out << x << '\n';
     };
 
-
-    SECTION("small") {
-        test_lsolve(Lp, bp, { 1./7., 1., 0., 1. });
+    SECTION("torso") {
+        vector<double> sol;
+        string L = "./data/s_torsoL.mtx";
+        string b = "./data/s_torsob.mtx";
+        tovec("./data/sol_s_torso", sol);
+        test_lsolve(lsolve_simple, L, b, sol);
+        test_lsolve(lsolve_eigen, L, b, sol);
     }
 }
