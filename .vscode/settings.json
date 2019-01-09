@@ -4,6 +4,9 @@
         "malloc.h": "c",
         "iosfwd": "cpp",
         "unordered_map": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "cstdio": "cpp",
+        "algorithm": "cpp",
+        "vector": "cpp"
     }
 }

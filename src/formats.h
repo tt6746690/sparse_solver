@@ -2,6 +2,7 @@
 #define __FORMAT_H__
 
 #include "mmio.h"
+#include <vector>
 
 // Coordinate format (COO)
 //      0-based coordinate 
@@ -12,7 +13,7 @@ class COO {
 public:
     COO();
     // `file` contains matrix market format
-    COO(const char* file);
+    COO(const char* file, bool lower_triangular = false);
     ~COO();
 public:
     // number of rows
@@ -29,12 +30,19 @@ public:
     T* values;
 };
 
+template <typename T>
+inline bool operator==(const COO<T>& lhs, const COO<T>& rhs);
+
 
 // load `.mtx` -> coordinate format 
+//
+//  lower_triangular: bool
+//      keep nonzeros when  `rowidx <= colidx`
 template <typename T>
 void loadMatrixMarket(
     const char* file,
-    COO<T>& coo);
+    COO<T>& coo,
+    bool lower_triangular);
 
 
 // Compressed sparse column format (CSC)
@@ -44,7 +52,7 @@ class CSC {
 public:
     CSC();
     // `file` contains matrix market format
-    CSC(const char* file);
+    CSC(const char* file, bool lower_triangular = false);
     ~CSC();
 public:
     // number of rows
@@ -60,6 +68,17 @@ public:
     // value of nonezro entries     size: nnz
     T*   x;
 };
+
+
+template <typename T>
+inline bool operator==(const CSC<T>& lhs, const CSC<T>& rhs);
+
+// For a sparse vector, convert from sparse representation to dense
+template <typename T>
+void csc_to_vec(
+    const CSC<T>& coo,
+    std::vector<T>& v);
+
 
 // Converts COO -> CSC
 template <typename T>
@@ -78,98 +97,9 @@ void show_csc(const CSC<T>& csc);
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
-#include <vector>
 #include <algorithm>
 
-template <typename T>
-CSC<T>::CSC()
-    : m(0), n(0), nnz(0), p(nullptr), i(nullptr), x(nullptr)
-    {};
-
-
-template <typename T>
-CSC<T>::CSC(const char* file) {
-    auto coo = COO<T>(file);
-    coo_to_csc(coo, *this);
-}
-
-template <typename T>
-CSC<T>::~CSC()
-{
-    if (p) free(p);
-    if (i) free(i);
-    if (x) free(x);
-}
-
-template <typename T>
-void coo_to_csc(
-    const COO<T>& coo,
-    CSC<T>& csc)
-{
-    int m = coo.m;
-    int n = coo.n;
-    int nnz = coo.nnz;
-
-    csc.~CSC();
-    csc.p = (int*) malloc((n+1) * sizeof(int));
-    csc.i = (int*) malloc(nnz * sizeof(int));
-    csc.x = (T*)   malloc(nnz * sizeof(T));
-
-    for (int i = 0; i <= n; ++i)  csc.p[i] = 0;
-    for (int i = 0; i < nnz; ++i) csc.p[coo.colidx[i]+1] += 1;
-    for (int i = 0; i < n; ++i)   csc.p[i+1] += csc.p[i];
-
-    struct ix_t {
-        int i;
-        T   x;
-    };
-    std::vector<ix_t>  ixs(nnz);
-
-    // fill in `x` and `i`
-    for (int i = 0; i < nnz; ++i) {
-        int c = csc.p[coo.colidx[i]];
-        ixs[c].i = coo.rowidx[i];
-        ixs[c].x = coo.values[i];
-        csc.p[coo.colidx[i]] += 1;
-    }
-
-    // shift back column pointers
-    for (int i = n; i > 0; --i) csc.p[i] = csc.p[i-1];
-    csc.p[0] = 0;
-
-    // sort ixs
-    for (int i = 0; i < n; ++i) {
-        std::sort(ixs.begin()+csc.p[i], ixs.begin()+csc.p[i+1],
-            [](const ix_t& a, const ix_t& b){ return a.i < b.i; });
-    }
-
-    for (int i = 0; i < nnz; ++i) {
-        csc.i[i] = ixs[i].i;
-        csc.x[i] = ixs[i].x;
-    }
-
-    csc.m = m;
-    csc.n = n;
-    csc.nnz = nnz;
-}
-
-template <typename T> 
-void show_csc(const CSC<T>& csc)
-{
-    int n = std::min(csc.n, 10)+1;
-    int nnz = std::min(csc.nnz, 10);
-    printf("CSC: (%d, %d, %d)\n", csc.m, csc.n, csc.nnz);
-    printf("p[:%d]: ", n);
-    for (int i = 0; i < n; ++i) printf("%d ", csc.p[i]);
-    printf("\n");
-    printf("i[:%d]: ", nnz);
-    for (int i = 0; i < nnz; ++i) printf("%d ", csc.i[i]);
-    printf("\n");
-    printf("x[:%d]: ", nnz);
-    for (int i = 0; i < nnz; ++i) printf("%f ", (float)csc.x[i]);
-    printf("\n");
-}
-
+// COO
 
 template <typename T>
 COO<T>::COO() 
@@ -177,8 +107,8 @@ COO<T>::COO()
     {};
 
 template <typename T>
-COO<T>::COO(const char* file) {
-    loadMatrixMarket(file, *this);
+COO<T>::COO(const char* file, bool lower_triangular) {
+    loadMatrixMarket(file, *this, lower_triangular);
 }
 
 template <typename T>
@@ -192,7 +122,8 @@ COO<T>::~COO()
 template <typename T>
 void loadMatrixMarket(
     const char* file,
-    COO<T>& coo)
+    COO<T>& coo,
+    bool lower_triangular)
 {
     FILE* fp = fopen(file, "r");
     if (fp == NULL) {
@@ -241,7 +172,7 @@ void loadMatrixMarket(
         assert(y >= 0 && y < n);
 
         // only care about the lower triangular 
-        if (y > x) continue;
+        if (lower_triangular && y > x) continue;
 
         rowidx[count] = x;
         colidx[count] = y;
@@ -260,6 +191,140 @@ void loadMatrixMarket(
     coo.colidx = colidx;
     coo.rowidx = rowidx;
 }
+
+template <typename T>
+inline bool operator==(const COO<T>& lhs, const COO<T>& rhs)
+{
+    if (lhs.m == rhs.m && lhs.n == rhs.n && lhs.nnz == rhs.nnz &&
+        std::equal(lhs.rowidx, lhs.rowidx+lhs.nnz, rhs.rowidx) &&
+        std::equal(lhs.colidx, lhs.colidx+lhs.nnz, rhs.colidx) &&
+        std::equal(lhs.values, lhs.values+lhs.nnz, rhs.values))
+    {
+        return true;
+    }
+    return false;
+}
+
+
+// CSC
+
+
+template <typename T>
+CSC<T>::CSC()
+    : m(0), n(0), nnz(0), p(nullptr), i(nullptr), x(nullptr)
+    {};
+
+
+template <typename T>
+CSC<T>::CSC(const char* file, bool lower_triangular) {
+    auto coo = COO<T>(file, lower_triangular);
+    coo_to_csc(coo, *this);
+}
+
+template <typename T>
+CSC<T>::~CSC()
+{
+    if (p) free(p);
+    if (i) free(i);
+    if (x) free(x);
+}
+
+
+template <typename T>
+inline bool operator==(const CSC<T>& lhs, const CSC<T>& rhs)
+{
+    if (lhs.m == rhs.m && lhs.n == rhs.n && lhs.nnz == rhs.nnz &&
+        std::equal(lhs.p, lhs.p+(lhs.n+1), rhs.p) &&
+        std::equal(lhs.i, lhs.i+lhs.nnz, rhs.i) &&
+        std::equal(lhs.x, lhs.x+lhs.nnz, rhs.x))
+    {
+        return true;
+    }
+    return false;
+}
+
+template <typename T>
+void csc_to_vec(
+    const CSC<T>& coo,
+    std::vector<T>& v)
+{
+    assert(coo.n == 1);
+    v.resize(coo.m, 0);
+    for (int i = 0; i < coo.nnz; ++i)
+        v[coo.i[i]] = coo.x[i];
+}
+
+
+template <typename T>
+void coo_to_csc(
+    const COO<T>& coo,
+    CSC<T>& csc)
+{
+    int m = coo.m;
+    int n = coo.n;
+    int nnz = coo.nnz;
+
+    csc.p = (int*) malloc((n+1) * sizeof(int));
+    csc.i = (int*) malloc(nnz * sizeof(int));
+    csc.x = (T*)   malloc(nnz * sizeof(T));
+
+    for (int i = 0; i <= n; ++i)  csc.p[i] = 0;
+    for (int i = 0; i < nnz; ++i) csc.p[coo.colidx[i]+1] += 1;
+    for (int i = 0; i < n; ++i)   csc.p[i+1] += csc.p[i];
+
+    struct ix_t {
+        int i;
+        T   x;
+    };
+    std::vector<ix_t>  ixs(nnz);
+
+    // fill in `x` and `i`
+    for (int i = 0; i < nnz; ++i) {
+        int c = csc.p[coo.colidx[i]];
+        ixs[c].i = coo.rowidx[i];
+        ixs[c].x = coo.values[i];
+        csc.p[coo.colidx[i]] += 1;
+    }
+
+    // shift back column pointers
+    for (int i = n; i > 0; --i) csc.p[i] = csc.p[i-1];
+    csc.p[0] = 0;
+
+    // sort ixs
+    for (int i = 0; i < n; ++i) {
+        std::sort(ixs.begin()+csc.p[i], ixs.begin()+csc.p[i+1],
+            [](const ix_t& a, const ix_t& b){ return a.i < b.i; });
+    }
+
+    for (int i = 0; i < nnz; ++i) {
+        csc.i[i] = ixs[i].i;
+        csc.x[i] = ixs[i].x;
+    }
+
+    csc.m = m;
+    csc.n = n;
+    csc.nnz = nnz;
+}
+
+
+
+template <typename T> 
+void show_csc(const CSC<T>& csc)
+{
+    int n = std::min(csc.n, 10)+1;
+    int nnz = std::min(csc.nnz, 10);
+    printf("CSC: (%d, %d, %d)\n", csc.m, csc.n, csc.nnz);
+    printf("p[:%d]: ", n);
+    for (int i = 0; i < n; ++i) printf("%d ", csc.p[i]);
+    printf("\n");
+    printf("i[:%d]: ", nnz);
+    for (int i = 0; i < nnz; ++i) printf("%d ", csc.i[i]);
+    printf("\n");
+    printf("x[:%d]: ", nnz);
+    for (int i = 0; i < nnz; ++i) printf("%f ", (float)csc.x[i]);
+    printf("\n");
+}
+
 
 
 #endif
