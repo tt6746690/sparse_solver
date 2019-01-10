@@ -11,7 +11,10 @@ using namespace std;
 
 const char* trace_output = "build/trace.json";
 string matr;
-const vector<string> matrices = {"small", "torso", "tsopf"};
+const vector<string> matrices = {
+    "small", "torso", "tsopf",
+    "s_small", "s_medium", "s_torso", "s_tsopf"
+};
 
 vector<double> x;
 string Lp, bp;
@@ -42,22 +45,14 @@ int main(int argc, char const *argv[])
 
     auto L = CSC<double>(Lp.c_str(), true);
     auto b = CSC<double>(bp.c_str(), true);
+    auto x = CSC<double>();
     assert(L.m == L.n);
 
-    csc_to_vec(b, x);
-    lsolve_simple(L.n, L.p, L.i, L.x, x.data());
-
-    printf("solution: \n");
-    for (int i = 0; i < L.n; ++i) {
-        if (x[i] != 0) printf("x[%d]=%f\n", i, x[i]);
-    }
-
-    csc_to_vec(b, x);
-    lsolve_eigen(L.n, L.p, L.i, L.x, x.data());
-
-    printf("solution: \n");
-    for (int i = 0; i < L.n; ++i) {
-        if (x[i] != 0) printf("x[%d]=%f\n", i, x[i]);
+    int rep = 5;
+    for (int i = 0; i < rep; ++i) {
+        lsolve(lsolve_type::simple, L, b, x);
+        lsolve(lsolve_type::eigen, L, b, x);
+        lsolve(lsolve_type::reachset, L, b, x);
     }
 
     mtr_shutdown();

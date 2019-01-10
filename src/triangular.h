@@ -39,7 +39,6 @@ void lsolve_reachset(
     T* x);
 
 
-
 // implementations 
 
 
@@ -112,8 +111,6 @@ void lsolve_reachset(
         }
     }
 }
-
-
 
 
 #endif

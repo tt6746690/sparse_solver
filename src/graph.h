@@ -30,6 +30,10 @@ void reachset(
 
 #include <stack>
 #include <cassert>
+#include <array>
+#include <algorithm>
+
+#include "minitrace.h"
 
 template <typename T>
 void reachset(
@@ -49,19 +53,23 @@ void reachset(
     const int* Bp, const int* Bi, const T* Bx,
     std::vector<int>& reachset)
 {
-    int v, p;
-    auto S = std::stack<int>();
+    MTR_SCOPE_FUNC();
+
+    int v, p, top = 0;
+    auto S = (int*) malloc(n * sizeof(int));
     auto D = std::vector<bool>(n, false);
 
     for (p = Bp[0]; p < Bp[1]; ++p)
-        S.push(Bi[p]);
+        S[top++] = Bi[p];
 
-    while (!S.empty()) {
-        v = S.top(); S.pop();
+    while (top != 0) {
+        v = S[top--];
         if (!D[v]) {
             D[v] = true;
-            for (p = Gp[v]; p < Gp[v+1]; ++p)
-                S.push(Gi[p]);
+            for (p = Gp[v]; p < Gp[v+1]; ++p) {
+                if (!D[Gi[p]])
+                    S[top++] = Gi[p];
+            }
         }
     }
 
@@ -69,13 +77,8 @@ void reachset(
         if (D[i])
             reachset.push_back(i);
     }
+    free(S);
 }
-
-
-
-    
-
-
 
 
 #endif 
