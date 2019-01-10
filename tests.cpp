@@ -79,57 +79,69 @@ TEST_CASE("formats") {
     }
 }
 
-using lsolveT = function<int (int, int*, int*, double*, double*)>;
+using lsolveT = function<void (int, int*, int*, double*, double*)>;
 
 const auto test_lsolve = [](
-    lsolveT solver,
+    lsolve_type type,
     const string& Lp, const string& bp,
     const vector<double> expected_x)
 {
     auto L = CSC<double>(Lp.c_str(), true);
     auto b = CSC<double>(bp.c_str(), true);
-    assert(L.m == L.n);
+
+    CSC<double> xs;
+    lsolve(type, L, b, xs);
 
     vector<double> x;
-    csc_to_vec(b, x);
-    solver(L.n, L.p, L.i, L.x, x.data());
+    csc_to_vec(xs, x);
     for (int i = 0; i < x.size(); ++i) {
+        // WARN("expected: "<<expected_x[i]<<" true: "<<x[i]);
         REQUIRE(expected_x[i] == Approx(x[i]));
     }
 };
 
-TEST_CASE("triangular_small") {
+const auto tovec = [](const string& file, vector<double>& v) {
+    v.clear();
+    ifstream in(file);
+    string l;
+    while(std::getline(in, l)) 
+        v.push_back(stod(l));
+};
+const auto tofile = [](const string& file, const vector<double>& v) {
+    ofstream out(file);
+    for (auto x : v) 
+        out << x << '\n';
+};
 
+
+TEST_CASE("triangular_small") {
+    vector<double> sol = { 1./7., 1., 0., 1. };
     auto L = CSC<double>(Lp.c_str());
     auto b = CSC<double>(bp.c_str());
+    test_lsolve(lsolve_type::simple, Lp, bp, sol);
+    test_lsolve(lsolve_type::eigen, Lp, bp, sol);
+    test_lsolve(lsolve_type::reachset, Lp, bp, sol);
+}
 
-    vector<double> sol = { 1./7., 1., 0., 1. };
-    test_lsolve(lsolve_simple, Lp, bp, sol);
-    test_lsolve(lsolve_eigen, Lp, bp, sol);
-
+TEST_CASE("triangular_medium") {
+    vector<double> sol;
+    tovec("./data/sol_s_medium", sol);
+    string Lp = "./data/s_mediumL.mtx";
+    string bp = "./data/s_mediumb.mtx";
+    test_lsolve(lsolve_type::simple, Lp, bp, sol);
+    test_lsolve(lsolve_type::eigen, Lp, bp, sol);
+    test_lsolve(lsolve_type::reachset, Lp, bp, sol);
 }
 
 
 TEST_CASE("triangular_large", "[.][long]") {
-    const auto tovec = [](const string& file, vector<double>& v) {
-        v.clear();
-        ifstream in(file);
-        string l;
-        while(std::getline(in, l)) 
-            v.push_back(stod(l));
-    };
-    const auto tofile = [](const string& file, const vector<double>& v) {
-        ofstream out(file);
-        for (auto x : v) 
-            out << x << '\n';
-    };
-
     SECTION("torso") {
         vector<double> sol;
-        string L = "./data/s_torsoL.mtx";
-        string b = "./data/s_torsob.mtx";
         tovec("./data/sol_s_torso", sol);
-        test_lsolve(lsolve_simple, L, b, sol);
-        test_lsolve(lsolve_eigen, L, b, sol);
+        string Lp = "./data/s_torsoL.mtx";
+        string bp = "./data/s_torsob.mtx";
+        test_lsolve(lsolve_type::simple, Lp, bp, sol);
+        test_lsolve(lsolve_type::eigen, Lp, bp, sol);
+        test_lsolve(lsolve_type::reachset, Lp, bp, sol);
     }
 }

@@ -78,11 +78,15 @@ public:
 template <typename T>
 inline bool operator==(const CSC<T>& lhs, const CSC<T>& rhs);
 
-// For a sparse vector, convert from sparse representation to dense
+// Convert sparse column vector to/from dense represeentation
 template <typename T>
 void csc_to_vec(
-    const CSC<T>& coo,
+    const CSC<T>& csc,
     std::vector<T>& v);
+template <typename T>
+void vec_to_csc(
+    const std::vector<T>& v,
+    CSC<T>& csc);
 
 
 // Converts COO -> CSC
@@ -102,6 +106,7 @@ void show_csc(const CSC<T>& csc);
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <iostream>
 #include <algorithm>
 
 // COO
@@ -251,6 +256,12 @@ CSC<T>::CSC(const char* file, bool lower_triangular) {
 template <typename T>
 CSC<T>::~CSC()
 {
+#ifdef MEMORY_PRINT
+    std::cout<<"CSC::~CSC()"<<": "<<this<<" ";
+    if (!p && !i && !x) std::cout<<"ptrs are nullptr\n";
+    else std::cout<<"releasing ptrs!\n";
+#endif
+
     if (p) free(p);
     if (i) free(i);
     if (x) free(x);
@@ -272,14 +283,47 @@ inline bool operator==(const CSC<T>& lhs, const CSC<T>& rhs)
 
 template <typename T>
 void csc_to_vec(
-    const CSC<T>& coo,
+    const CSC<T>& csc,
     std::vector<T>& v)
 {
-    assert(coo.n == 1);
+    assert(csc.n == 1);
     v.clear();
-    v.resize(coo.m, 0);
-    for (int i = 0; i < coo.nnz; ++i)
-        v[coo.i[i]] = coo.x[i];
+    v.resize(csc.m, 0);
+    for (int i = 0; i < csc.nnz; ++i)
+        v[csc.i[i]] = csc.x[i];
+}
+
+template <typename T>
+void vec_to_csc(
+    const std::vector<T>& v,
+    CSC<T>& csc)
+{
+    int m = v.size();
+    int n = 1;
+    int nnz = 0;
+
+    int* p = (int*) malloc((n+1) * sizeof(int));
+    int* i = (int*) malloc(v.size() * sizeof(int));
+    T*   x = (T*)   malloc(v.size() * sizeof(T));
+
+    for (int j = 0; j < v.size(); ++j) {
+        if (v[j] != 0) {
+            i[nnz] = j;
+            x[nnz] = v[j];
+            nnz += 1;
+        }
+    }
+
+    p[0] = 0; p[1] = nnz;
+    i = (int*) realloc(i, nnz * sizeof(int));
+    x = (T*)   realloc(x, nnz * sizeof(T));
+    
+    csc.m = m;
+    csc.n = n;
+    csc.nnz = nnz;
+    csc.p = p;
+    csc.i = i;
+    csc.x = x;
 }
 
 

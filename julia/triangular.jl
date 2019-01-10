@@ -1,7 +1,7 @@
 using MatrixMarket
 using DelimitedFiles
 
-for matr in ["s_small", "s_torso", "s_tsopf"]
+for matr in ["s_small", "s_medium", "s_torso", "s_tsopf"]
     L = MatrixMarket.mmread("data/$(matr)L.mtx")
     b = MatrixMarket.mmread("data/$(matr)b.mtx")
     x = L \ b
