@@ -13,3 +13,8 @@ make
 lldb build/main
 process launch
 ```
+
+
++ verification 
+    + ill-conditioned matrix, cannot use `Lx=b`
+    + 

@@ -4,12 +4,16 @@ project(sparse_solvers)
 set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-option(WITH_MEMORY_PRINT "Enable printing memory management of C++ objects" OFF)
+option(WITH_MEMORY_PRINT    "Enable printing memory management of C++ objects" OFF)
+option(WITH_NUMERICAL_PRINT "Enable printing debugging related to numerical issues" OFF)
 option(WITH_DEBUG "Enable debugging" ON)
 option(WITH_TESTS "Enable testing" ON)
 
 if(WITH_MEMORY_PRINT)
     add_definitions(-DMEMORY_PRINT)
+endif()
+if(WITH_NUMERICAL_PRINT)
+    add_definitions(-DNUMERICAL_PRINT)
 endif()
 
 
