@@ -1,5 +1,5 @@
-#ifndef __FORMAT_H__
-#define __FORMAT_H__
+#ifndef __FORMATS_H__
+#define __FORMATS_H__
 
 #include "mmio.h"
 #include <vector>
@@ -14,6 +14,8 @@ public:
     COO();
     // `file` contains matrix market format
     COO(const char* file, bool lower_triangular = false);
+    COO(const COO& coo);
+    COO& operator=(const COO& coo);
     ~COO();
 public:
     // number of rows
@@ -28,6 +30,9 @@ public:
     int* colidx;
     // value of nonezro entries     size: nnz
     T* values;
+private:
+    void deallocate();
+    void copy(const COO& from, COO& to);
 };
 
 template <typename T>
@@ -58,6 +63,8 @@ public:
     CSC();
     // `file` contains matrix market format
     CSC(const char* file, bool lower_triangular = false);
+    CSC(const CSC& csc);
+    CSC& operator=(const CSC& csc);
     ~CSC();
 public:
     // number of rows
@@ -72,6 +79,9 @@ public:
     int* i;
     // value of nonezro entries     size: nnz
     T*   x;
+private:
+    void deallocate();
+    void copy(const CSC& from, CSC& to);
 };
 
 
@@ -108,6 +118,7 @@ void show_csc(const CSC<T>& csc);
 #include <cassert>
 #include <iostream>
 #include <algorithm>
+#include <limits>
 
 // COO
 
@@ -121,12 +132,43 @@ COO<T>::COO(const char* file, bool lower_triangular) {
     loadMatrixMarket(file, *this, lower_triangular);
 }
 
+
 template <typename T>
-COO<T>::~COO()
-{
+COO<T>::COO(const COO<T>& coo) {
+    copy(coo, *this);
+}
+
+template <typename T>
+COO<T>& COO<T>::operator=(const COO<T>& coo) {
+    copy(coo, *this);
+    return *this;
+}
+
+template <typename T>
+void COO<T>::copy(const COO<T>& from, COO<T>& to) {
+    auto nnz = from.nnz;
+    to.m    =   from.m;
+    to.n    =   from.n;
+    to.nnz  =   from.nnz;
+    deallocate();
+    to.rowidx = (int*) malloc(nnz * sizeof(int));
+    to.colidx = (int*) malloc(nnz * sizeof(int));
+    to.values = (T*)   malloc(nnz * sizeof(T));
+    std::copy(from.rowidx, from.rowidx + nnz, to.rowidx);
+    std::copy(from.colidx, from.colidx + nnz, to.colidx);
+    std::copy(from.values, from.values + nnz, to.values);
+}
+
+template <typename T>
+void COO<T>::deallocate() {
     if (rowidx) free(rowidx);
     if (colidx) free(colidx);
     if (values) free(values);
+}
+
+template <typename T>
+COO<T>::~COO() {
+    deallocate();
 }
 
 template <typename T>
@@ -254,6 +296,17 @@ CSC<T>::CSC(const char* file, bool lower_triangular) {
 }
 
 template <typename T>
+CSC<T>::CSC(const CSC<T>& csc) {
+    copy(csc, *this);
+}
+
+template <typename T>
+CSC<T>& CSC<T>::operator=(const CSC<T>& csc) {
+    copy(csc, *this);
+    return *this;
+}
+
+template <typename T>
 CSC<T>::~CSC()
 {
 #ifdef MEMORY_PRINT
@@ -261,12 +314,28 @@ CSC<T>::~CSC()
     if (!p && !i && !x) std::cout<<"ptrs are nullptr\n";
     else std::cout<<"releasing ptrs!\n";
 #endif
-
-    if (p) free(p);
-    if (i) free(i);
-    if (x) free(x);
+    deallocate();
 }
 
+template <typename T>
+void CSC<T>::copy(const CSC<T>& from, CSC<T>& to) {
+    int m = from.m, n = from.n, nnz = from.nnz;
+    to.m = m; to.n = n; to.nnz = nnz;
+    deallocate();
+    to.p = new int[n+1];
+    to.i = new int[nnz];
+    to.x = new T[nnz];
+    std::copy(from.p, from.p + (n+1), to.p);
+    std::copy(from.i, from.i + nnz,   to.i);
+    std::copy(from.x, from.x + nnz,   to.x);
+}
+
+template <typename T>
+void CSC<T>::deallocate() {
+    if (p) delete[] p;
+    if (i) delete[] i;
+    if (x) delete[] x;
+}
 
 template <typename T>
 inline bool operator==(const CSC<T>& lhs, const CSC<T>& rhs)
@@ -300,27 +369,36 @@ void vec_to_csc(
 {
     int m = v.size();
     int n = 1;
-    int nnz = 0;
-
-    int* p = (int*) malloc((n+1) * sizeof(int));
-    int* i = (int*) malloc(v.size() * sizeof(int));
-    T*   x = (T*)   malloc(v.size() * sizeof(T));
+    size_t nnz = 0;
 
     for (int j = 0; j < v.size(); ++j) {
         if (v[j] != 0) {
+            nnz += 1;
+        }
+    }
+
+    auto p = new int[n+1];
+    auto i = new int[nnz];
+    auto x = new T[nnz];
+
+    p[0] = 0; p[1] = nnz;
+
+    nnz = 0;
+    for (int j = 0; j < v.size(); ++j) {
+        if (v[j] != 0) {
+            if (nnz > std::numeric_limits<int>::max()) {
+                printf("%zu (nnz) > %d (numerical limit for int)", nnz, std::numeric_limits<int>::max());
+                exit(-1);
+            }
             i[nnz] = j;
             x[nnz] = v[j];
             nnz += 1;
         }
     }
-
-    p[0] = 0; p[1] = nnz;
-    i = (int*) realloc(i, nnz * sizeof(int));
-    x = (T*)   realloc(x, nnz * sizeof(T));
     
     csc.m = m;
     csc.n = n;
-    csc.nnz = nnz;
+    csc.nnz = static_cast<int>(nnz);
     csc.p = p;
     csc.i = i;
     csc.x = x;
@@ -336,9 +414,9 @@ void coo_to_csc(
     int n = coo.n;
     int nnz = coo.nnz;
 
-    csc.p = (int*) malloc((n+1) * sizeof(int));
-    csc.i = (int*) malloc(nnz * sizeof(int));
-    csc.x = (T*)   malloc(nnz * sizeof(T));
+    csc.p = new int[n+1];
+    csc.i = new int[nnz];
+    csc.x = new T[nnz];
 
     for (int i = 0; i <= n; ++i)  csc.p[i] = 0;
     for (int i = 0; i < nnz; ++i) csc.p[coo.colidx[i]+1] += 1;

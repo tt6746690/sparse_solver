@@ -24,19 +24,21 @@ else()
 endif()
 
 add_compile_options(-Wno-writable-strings)
-
 # Catch2 
 add_subdirectory(Catch2)
 # minitrace
 add_definitions(-DMTR_ENABLED)
+# Eigen
+add_subdirectory(eigen)
 
 file(GLOB SRCFILES 
     src/*.h
     src/*.cpp)
 
 add_executable(main main.cpp ${SRCFILES})
+target_link_libraries(main Eigen3::Eigen)
 
 if (WITH_TESTS)
     add_executable(tests tests.cpp  ${SRCFILES})
-    target_link_libraries(tests Catch2::Catch2)
+    target_link_libraries(tests Catch2::Catch2 Eigen3::Eigen)
 endif()

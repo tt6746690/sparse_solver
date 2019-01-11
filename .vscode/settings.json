@@ -8,6 +8,10 @@
         "cstdio": "cpp",
         "algorithm": "cpp",
         "vector": "cpp",
-        "istream": "cpp"
+        "istream": "cpp",
+        "functional": "cpp",
+        "iomanip": "cpp",
+        "string": "cpp",
+        "limits": "cpp"
     }
 }

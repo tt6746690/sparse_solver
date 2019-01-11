@@ -13,7 +13,7 @@
 //
 //     Outputs:
 //     y: a dense vector
-int spmv_csc(int n, size_t *Ap, int *Ai, double *Ax, double *x, double *y);
+int spmv_csc(int n, int* Ap, int* Ai, double* Ax, double* x, double* y);
 
 
 #endif

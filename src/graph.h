@@ -30,7 +30,6 @@ void reachset(
 
 #include <stack>
 #include <cassert>
-#include <array>
 #include <algorithm>
 
 #include "minitrace.h"
@@ -56,14 +55,14 @@ void reachset(
     MTR_SCOPE_FUNC();
 
     int v, p, top = 0;
-    auto S = (int*) malloc(n * sizeof(int));
+    auto S = new int[n];
     auto D = std::vector<bool>(n, false);
 
     for (p = Bp[0]; p < Bp[1]; ++p)
         S[top++] = Bi[p];
 
     while (top != 0) {
-        v = S[top--];
+        v = S[--top];
         if (!D[v]) {
             D[v] = true;
             for (p = Gp[v]; p < Gp[v+1]; ++p) {
@@ -77,7 +76,7 @@ void reachset(
         if (D[i])
             reachset.push_back(i);
     }
-    free(S);
+    delete[] S;
 }
 
 

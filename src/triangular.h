@@ -2,7 +2,13 @@
 #define __TRIANGULAR_H__
 
 #include "formats.h"
- 
+
+enum class lsolve_type {
+    simple,
+    eigen,
+    reachset,
+};
+
 //
 //  Lower triangular solver Lx=b
 //
@@ -12,11 +18,6 @@
 //      b : sparse rhs
 //  Outputs:
 //      x : solution to `Lx = b`
-enum class lsolve_type {
-    simple,
-    eigen,
-    reachset,
-};
 template <typename T>
 void lsolve(
     lsolve_type type,
