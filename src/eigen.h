@@ -1,8 +1,9 @@
 #ifndef __EIGEN_H__
 #define __EIGEN_H__
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
-
-// Computes condition number ||A|| ||A^{-1}|| of a matrix
+// Computes condition number k(A) = ||A|| ||A^{-1}||
 template <typename T>
 int condition_number(const Eigen::SparseMatrix<T>& S) {
     Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
@@ -16,7 +17,7 @@ int condition_number(const Eigen::SparseMatrix<T>& S) {
 // convert CSC format to Eigen Sparse
 template <typename T>
 void csc_to_eigensparse(const CSC<T>& csc, Eigen::SparseMatrix<T>& S) {
-    vector<Triplet<double>> triplets;
+    vector<Eigen::Triplet<double>> triplets;
     for (int j = 0; j < csc.m; ++j) {
         for (int p = csc.p[j]; p < csc.p[j+1]; ++p) {
             triplets.emplace_back(csc.i[p], j, csc.x[p]);

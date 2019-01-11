@@ -1,20 +1,19 @@
 
 
-
-+ matrix market format
-    + https://people.sc.fsu.edu/~jburkardt/data/mm/mm.html
-
-
 ```
+# built for MacOS
+git clone --recursive https://github.com/tt6746690/sparse_solver.git
+brew install libomp
+
 cmake -DWITH_DEBUG=OFF ..
 make
 
+# unit tests
+cd ..
+./build/tests
+./build/tests "triangular_large"    # long running tests
 
+# debugging
 lldb build/main
 process launch
-```
-
-
-+ verification 
-    + ill-conditioned matrix, cannot use `Lx=b`
-    + 
+```s

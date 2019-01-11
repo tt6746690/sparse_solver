@@ -152,7 +152,7 @@ const auto test_lsolve = [](lsolve_type type, const string& matr, verification_m
 };
 
 const auto lsolve_types = {
-    lsolve_type::simple, lsolve_type::eigen, lsolve_type::reachset
+    lsolve_type::simple, lsolve_type::eigen, lsolve_type::reachset, lsolve_type::eigen_par
 };
 
 TEST_CASE("triangular_small") {

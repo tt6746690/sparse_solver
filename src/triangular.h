@@ -2,12 +2,14 @@
 #define __TRIANGULAR_H__
 
 #include <string>
+#include "utils.h"
 #include "formats.h"
 
 enum class lsolve_type {
     simple,
     eigen,
     reachset,
+    eigen_par,
 };
 std::string lsolve_str(lsolve_type type);
 
@@ -19,7 +21,7 @@ std::string lsolve_str(lsolve_type type);
 //      L : sparse lower triangular matrix
 //      b : sparse rhs
 //  Outputs:
-//      x : solution to `Lx = b`
+//      x : solution to `Lx = b`, in dense representation
 template <typename T>
 void lsolve(
     lsolve_type type,
@@ -40,7 +42,9 @@ void lsolve_reachset(
     const CSC<T>& L,
     const CSC<T>& b,
     T* x);
-
+    
+// simple implementation, inner loop parallelized
+void lsolve_eigen_par(int n, int* Lp, int* Li, double* Lx, double* x);
 
 // implementations 
 
@@ -67,16 +71,34 @@ void lsolve(
     std::vector<T> xvec;
     csc_to_vec(b, xvec);
 
+    time_point_t t1, t2;
+
     switch (type) {
-        case lsolve_type::simple:
+        case lsolve_type::simple: {
+            t1 = now();
             lsolve_simple(L.n, L.p, L.i, L.x, xvec.data());
+            t2 = now();
+            printf("lsolve_simple, %f\n", diff(t1, t2));
             break;
-        case lsolve_type::eigen:
+        }
+        case lsolve_type::eigen: {
+            t1 = now();
             lsolve_eigen(L.n, L.p, L.i, L.x, xvec.data());
+            t2 = now();
+            printf("lsolve_eigen, %f\n", diff(t1, t2));
             break;
-        case lsolve_type::reachset:
+        }
+        case lsolve_type::reachset: {
             lsolve_reachset(L, b, xvec.data());
             break;
+        }
+        case lsolve_type::eigen_par: {
+            t1 = now();
+            lsolve_eigen_par(L.n, L.p, L.i, L.x, xvec.data());
+            t2 = now();
+            printf("lsolve_eigen_par, %f\n", diff(t1, t2));
+            break;
+        }
         default:
             break;
     }
@@ -103,8 +125,12 @@ void lsolve_reachset(
     Lp = L.p; Li = L.i; Bp = B.p; Bi = B.i;
     Lx = L.x; Bx = B.x;
 
+    time_point_t t1, t2, t3;
+
+    t1 = now();
     std::vector<int> reachset;
     ::reachset(L, B, reachset);
+    t2 = now();
 
     int i, j, p;
     for (i = 0; i < reachset.size(); ++i) {
@@ -114,6 +140,10 @@ void lsolve_reachset(
             x[Li[p]] -= Lx[p] * x[j];
         }
     }
+    t3 = now();
+
+    printf("lsolve_reachset_symbolic, %f\n", diff(t1, t2));
+    printf("lsolve_reachset_numeric, %f\n", diff(t2, t3));
 }
 
 

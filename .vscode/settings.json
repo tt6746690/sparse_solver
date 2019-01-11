@@ -24,6 +24,16 @@
         "map": "cpp",
         "regex": "cpp",
         "set": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "stack": "cpp",
+        "chrono": "cpp",
+        "__config": "cpp",
+        "__nullptr": "cpp",
+        "cstddef": "cpp",
+        "exception": "cpp",
+        "new": "cpp",
+        "stdexcept": "cpp",
+        "type_traits": "cpp",
+        "typeinfo": "cpp"
     }
 }

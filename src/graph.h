@@ -61,6 +61,7 @@ void reachset(
     for (p = Bp[0]; p < Bp[1]; ++p)
         S[top++] = Bi[p];
 
+    MTR_BEGIN("reachset", "while");
     while (top != 0) {
         v = S[--top];
         if (!D[v]) {
@@ -71,11 +72,15 @@ void reachset(
             }
         }
     }
+    MTR_END("reachset", "while");
 
+    MTR_BEGIN("reachset", "sort");
     for (int i = 0; i < D.size(); ++i) {
         if (D[i])
             reachset.push_back(i);
     }
+    MTR_END("reachset", "sort");
+
     delete[] S;
 }
 
