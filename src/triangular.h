@@ -1,6 +1,7 @@
 #ifndef __TRIANGULAR_H__
 #define __TRIANGULAR_H__
 
+#include <string>
 #include "formats.h"
 
 enum class lsolve_type {
@@ -8,6 +9,7 @@ enum class lsolve_type {
     eigen,
     reachset,
 };
+std::string lsolve_str(lsolve_type type);
 
 //
 //  Lower triangular solver Lx=b
@@ -49,6 +51,7 @@ void lsolve_reachset(
 
 #include "minitrace.h"
 #include "graph.h"
+
 
 template <typename T>
 void lsolve(

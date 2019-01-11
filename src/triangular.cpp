@@ -1,6 +1,15 @@
 #include "minitrace.h"
 #include "triangular.h"
 
+std::string lsolve_str(lsolve_type type) {
+    switch (type) {
+        case lsolve_type::simple:   return "simple";
+        case lsolve_type::eigen:    return "eigen";
+        case lsolve_type::reachset: return "reachset";
+        default: return "";
+    }
+}
+
 void lsolve_simple(int n, int* Lp, int* Li, double* Lx, double* x) {
     MTR_SCOPE_FUNC();
     int p = 0, j = 0;
@@ -11,23 +20,18 @@ void lsolve_simple(int n, int* Lp, int* Li, double* Lx, double* x) {
 #endif
 
     for (j = 0; j < n; j++) {
-
 #ifdef NUMERICAL_PRINT
         if (x[j]/Lx[Lp[j]] > epsilon || x[j]/Lx[Lp[j]] < -epsilon) {
             std::cout<<j<<": "<<x[j]<<" / "<<Lx[Lp[j]]<<" = "<<x[j]/Lx[Lp[j]]<<"\n";
         }
 #endif
-
         x[j] /= Lx[Lp[j]];
-        
         for (p = Lp[j]+1; p < Lp[j+1]; p++) {
-
 #ifdef NUMERICAL_PRINT
             if (Lx[p] * x[j] > epsilon) {
                 std::cout<<"\t\tx["<<Li[p]<<"] -= L["<<Li[p]<<", "<<j<<"] * x["<<j<<"] ( = "<<x[Li[p]]<< " - "<<Lx[p]<<" * "<<x[j]<<") = "<<(x[Li[p]]-Lx[p]*x[j])<<'\n';
             }
 #endif
-
             x[Li[p]] -= Lx[p] * x[j];
         }
     }

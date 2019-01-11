@@ -67,7 +67,6 @@ int main(int argc, char const *argv[])
     // }
 
 
-    test: `Lx = y == b`
     lsolve(lsolve_type::simple, L, b, x);
 
     csc_to_vec(b, bvec);
