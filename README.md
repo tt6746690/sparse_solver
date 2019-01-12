@@ -23,7 +23,7 @@ cd .. && ./build/tests
 //     solver_type: one of {all, simple, eigen, reachset, eigen_par}
 //     n_threads  : a digit or a range, i.e. `3` or `1-4`
 // 
-./build/main small all 1-4
+./build/main s_small all 1-4
 
 # debugging
 lldb build/main
