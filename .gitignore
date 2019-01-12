@@ -10,3 +10,4 @@ notes.md
 *.fdb_latexmk
 *.fls
 *.log
+*.out
