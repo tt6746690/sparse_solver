@@ -2,7 +2,7 @@
 %
 % 1. copy matrixmarket -> ascii datafile
 % 2. remove comments and remove line for `(m n nnz)`
-# 3. for `b` need to add additional line to give matrix size `ncols 1 0`
+% 3. for `b` need to add additional line to give matrix size `ncols 1 0`
 
 data_folder = './data/'
 

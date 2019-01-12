@@ -26,6 +26,7 @@ if(WITH_DEBUG)
 else()
     add_compile_options(-O3)
     add_definitions(-DNDEBUG)
+    add_definitions(${CMAKE_CXX_FLAGS} "-march=native")
 endif()
 
 # OpenMP

@@ -36,6 +36,7 @@ void lsolve(
     const CSC<T>& L,
     const CSC<T>& b,
     CSC<T>& x,
+    const std::string& matr,
     int n_thread = 1);
 
 
@@ -47,14 +48,20 @@ void lsolve_simple(int n, int* Lp, int* Li, double* Lx, double* x);
 void lsolve_eigen(int n,int* Lp, int* Li, double* Lx, double* x);
 
 // Solve using reachset
-template <typename T>
-void lsolve_reachset(
-    const CSC<T>& L,
-    const CSC<T>& b,
-    T* x);
+void lsolve_reachset_default(
+    int n,  int* Lp, int* Li, double* Lx, double* x, 
+    std::vector<int> reachset);
+void lsolve_reachset_small(
+    int n,  int* Lp, int* Li, double* Lx, double* x, 
+    std::vector<int> reachset);
+void lsolve_reachset_medium(
+    int n,  int* Lp, int* Li, double* Lx, double* x, 
+    std::vector<int> reachset);
     
 // simple implementation, inner loop parallelized
 void lsolve_eigen_par(int n, int* Lp, int* Li, double* Lx, double* x);
+
+
 
 // implementations 
 
@@ -73,6 +80,7 @@ void lsolve(
     const CSC<T>& L,
     const CSC<T>& b,
     CSC<T>& x,
+    const std::string& matr,
     int n_thread)
 {
     assert(b.n == 1);
@@ -82,7 +90,7 @@ void lsolve(
     std::vector<T> xvec;
     csc_to_vec(b, xvec);
 
-    time_point_t t1, t2;
+    time_point_t t1, t2, t3;
 
     switch (type) {
         case lsolve_type::simple: {
@@ -99,10 +107,6 @@ void lsolve(
             printf("lsolve_eigen, numeric, 1, %.16f\n", diff(t1, t2));
             break;
         }
-        case lsolve_type::reachset: {
-            lsolve_reachset(L, b, xvec.data());
-            break;
-        }
         case lsolve_type::eigen_par: {
             t1 = now();
             lsolve_eigen_par(L.n, L.p, L.i, L.x, xvec.data());
@@ -110,48 +114,33 @@ void lsolve(
             printf("lsolve_eigen_par, numeric, %d, %.16f\n", n_thread, diff(t1, t2));
             break;
         }
+        case lsolve_type::reachset: {
+
+            t1 = now();
+            std::vector<int> reachset;
+            ::reachset(L, b, reachset);
+            t2 = now();
+            
+            if (matr == "small" || matr == "s_small") {
+                lsolve_reachset_small(L.n, L.p, L.i, L.x, xvec.data(), reachset);
+            } else if (matr == "medium" || matr == "s_medium") {
+                lsolve_reachset_medium(L.n, L.p, L.i, L.x, xvec.data(), reachset);
+            } else {
+                lsolve_reachset_default(L.n, L.p, L.i, L.x, xvec.data(), reachset);
+            }
+
+            t3 = now();
+
+            printf("lsolve_reachset_%s, symbolic, 1, %.16f\n", matr.c_str(), diff(t1, t2));
+            printf("lsolve_reachset_%s, numeric,  1, %.16f\n", matr.c_str(), diff(t2, t3));
+            
+            break;
+        }
         default:
             break;
     }
 
     vec_to_csc(xvec, x);
-}
-
-
-template <typename T>
-void lsolve_reachset(
-    const CSC<T>& L,
-    const CSC<T>& B,
-    T* x)
-{
-    MTR_SCOPE_FUNC();
-
-    const int* Lp = L.p;
-    const int* Li = L.i;
-    const T*   Lx = L.x;
-
-    time_point_t t1, t2, t3;
-
-    t1 = now();
-
-    std::vector<int> reachset;
-    ::reachset(L, B, reachset);
-
-    t2 = now();
-
-    int i, j, p;
-    for (i = 0; i < reachset.size(); ++i) {
-        j = reachset[i];
-        x[j] /= Lx[Lp[j]];
-        for (p = Lp[j]+1; p < Lp[j+1]; p++) {
-            x[Li[p]] -= Lx[p] * x[j];
-        }
-    }
-
-    t3 = now();
-
-    printf("lsolve_reachset, symbolic, 1, %.16f\n", diff(t1, t2));
-    printf("lsolve_reachset, numeric,  1, %.16f\n", diff(t2, t3));
 }
 
 

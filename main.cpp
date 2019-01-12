@@ -86,10 +86,10 @@ int main(int argc, char const *argv[])
         for (int i = 0; i < repetitions; ++i) {
             if (solver == "all") {
                 for (auto&& type : lsolve_types) {
-                    lsolve(type.second, L, b, x, n_thread);
+                    lsolve(type.second, L, b, x, matr, n_thread);
                 }
             } else {
-                lsolve(lsolve_types.at(solver), L, b, x, n_thread);
+                lsolve(lsolve_types.at(solver), L, b, x, matr, n_thread);
             }
         }
     }

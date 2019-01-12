@@ -118,7 +118,7 @@ const auto test_lsolve = [](lsolve_type type, const string& matr, verification_m
     auto solx = CSC<double>(triangularsol(matr).c_str(), true);
     csc_to_vec(solx, solxvec);
 
-    lsolve(type, L, b, x);
+    lsolve(type, L, b, x, matr);
 
     csc_to_vec(x, xvec);
     csc_to_vec(b, bvec);
