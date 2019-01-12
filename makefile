@@ -5,7 +5,7 @@ REMOTE = wpq@comps0.cs.toronto.edu
 CUR_FOLDER = $(HOME)/github/sparse_solver/
 REMOTE_FOLDER = /u/wpq/github/sparse_solver
 
-SRC_FOLDER = $(CUR_FOLDER)/scripts $(CUR_FOLDER)/main.cpp $(CUR_FOLDER)/tests.cpp
+SRC_FOLDER = $(CUR_FOLDER)/scripts $(CUR_FOLDER)/main.cpp $(CUR_FOLDER)/tests.cpp $(CUR_FOLDER)/src $(CUR_FOLDER)/eigen $(CUR_FOLDER)/Catch2
 DAT_FOLDER = $(CUR_FOLDER)/data
 
 synccode:
