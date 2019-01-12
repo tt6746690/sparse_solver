@@ -16,6 +16,15 @@ make
 cd .. && ./build/tests
 ./build/tests "triangular_large"    # long running tests on torso and tospof
 
+
+// ./build/main matrix_name solver_type number_of_threads
+//
+//     matrix_name: `torso` will find `./data/{torso}L.mtx` and `./data/{torso}b.mtx`
+//     solver_type: one of {all, simple, eigen, reachset, eigen_par}
+//     n_threads  : a digit or a range, i.e. `3` or `1-4`
+// 
+./build small all 1-4
+
 # debugging
 lldb build/main
 process launch
