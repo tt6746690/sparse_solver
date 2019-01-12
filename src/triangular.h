@@ -51,10 +51,17 @@ void lsolve_eigen(int n,int* Lp, int* Li, double* Lx, double* x);
 void lsolve_reachset_default(
     int n,  int* Lp, int* Li, double* Lx, double* x, 
     std::vector<int> reachset);
+// for specific matrices known at compile time
 void lsolve_reachset_small(
     int n,  int* Lp, int* Li, double* Lx, double* x, 
     std::vector<int> reachset);
 void lsolve_reachset_medium(
+    int n,  int* Lp, int* Li, double* Lx, double* x, 
+    std::vector<int> reachset);
+void lsolve_reachset_torso(
+    int n,  int* Lp, int* Li, double* Lx, double* x, 
+    std::vector<int> reachset);
+void lsolve_reachset_tsopf(
     int n,  int* Lp, int* Li, double* Lx, double* x, 
     std::vector<int> reachset);
     
@@ -125,6 +132,10 @@ void lsolve(
                 lsolve_reachset_small(L.n, L.p, L.i, L.x, xvec.data(), reachset);
             } else if (matr == "medium" || matr == "s_medium") {
                 lsolve_reachset_medium(L.n, L.p, L.i, L.x, xvec.data(), reachset);
+            } else if (matr == "torso" || matr == "s_torso") {
+                lsolve_reachset_torso(L.n, L.p, L.i, L.x, xvec.data(), reachset);
+            } else if (matr == "tsopf" || matr == "s_tsopf") {
+                lsolve_reachset_tsopf(L.n, L.p, L.i, L.x, xvec.data(), reachset);
             } else {
                 lsolve_reachset_default(L.n, L.p, L.i, L.x, xvec.data(), reachset);
             }

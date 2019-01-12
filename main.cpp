@@ -85,9 +85,11 @@ int main(int argc, char const *argv[])
         omp_set_num_threads(n_thread);
         for (int i = 0; i < repetitions; ++i) {
             if (solver == "all") {
-                for (auto&& type : lsolve_types) {
-                    lsolve(type.second, L, b, x, matr, n_thread);
-                }
+                lsolve(lsolve_type::simple,    L, b, x, matr, n_thread);
+                lsolve(lsolve_type::eigen,     L, b, x, matr, n_thread);
+                lsolve(lsolve_type::reachset,  L, b, x, matr, n_thread);
+                lsolve(lsolve_type::reachset,  L, b, x, "default", n_thread);
+                lsolve(lsolve_type::eigen_par, L, b, x, matr, n_thread);
             } else {
                 lsolve(lsolve_types.at(solver), L, b, x, matr, n_thread);
             }

@@ -4,10 +4,10 @@ project(sparse_solvers)
 set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-option(WITH_MEMORY_PRINT    "Enable printing memory management of C++ objects" OFF)
-option(WITH_NUMERICAL_PRINT "Enable printing debugging related to numerical issues" OFF)
-option(WITH_DEBUG "Enable debugging" ON)
-option(WITH_TESTS "Enable testing" ON)
+option(WITH_MEMORY_PRINT    "Enable printing C++ objects' lifetime"         OFF)
+option(WITH_NUMERICAL_PRINT "Enable printing numerical related issues"      OFF)
+option(WITH_DEBUG           "Enable debugging"                              OFF)
+option(WITH_TESTS           "Enable testing"                                ON)
 
 if(WITH_MEMORY_PRINT)
     add_definitions(-DMEMORY_PRINT)
@@ -30,11 +30,12 @@ else()
 endif()
 
 # OpenMP
-SET(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
-SET(OpenMP_C_LIB_NAMES "omp")
-SET(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
-SET(OpenMP_CXX_LIB_NAMES "omp")
-SET(OpenMP_omp_LIBRARY "/usr/local/opt/libomp/lib/libomp.dylib")
+SET(OpenMP_C_FLAGS          "-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+SET(OpenMP_C_LIB_NAMES      "omp")
+SET(OpenMP_CXX_FLAGS        "-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+SET(OpenMP_CXX_LIB_NAMES    "omp")
+SET(OpenMP_omp_LIBRARY      "/usr/local/opt/libomp/lib/libomp.dylib")
+
 find_package(OpenMP REQUIRED)
 
 # submodule dependencies
