@@ -4,3 +4,9 @@ data/
 notes.md
 
 .ipynb_checkpoints/
+
+*.synctex.gz
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
