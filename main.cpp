@@ -44,6 +44,13 @@ int main(int argc, char const *argv[])
 {
     mtr_init(trace_output);
 
+
+    // ./build/main matrix_name solver_type number_of_threads
+    //
+    //     matrix_name: `torso` will find `./data/{torso}L.mtx` and `./data/{torso}b.mtx`
+    //     solver_type: one of {all, simple, eigen, reachset, eigen_par}
+    //     n_threads  : a digit or a range, i.e. `3` or `1-4`
+
     switch (argc) {
         case 4: {
             auto n_threads_str = string(argv[3]);
