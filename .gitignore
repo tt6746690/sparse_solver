@@ -2,3 +2,5 @@ build/
 data/
 
 notes.md
+
+.ipynb_checkpoints/

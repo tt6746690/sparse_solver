@@ -3,17 +3,19 @@
 #define CATCH_CONFIG_MAIN  
 #include "catch2/catch.hpp"
 
-#define VECTOR_EQUAL(A, B) \
+#define CATCH_MARGIN 0.001
+#define VECTOR_APPROX_EQUAL(A, B) \
     REQUIRE(A.size() == B.size()); \
     for (int i__ = 0; i__ < A.size(); ++i__) {    \
         if (A[i__] == -0. && B[i__] == 0.) {continue;} \
-        CHECK(A[i__] == Approx(B[i__]));  \
+        CHECK(A[i__] == Approx(B[i__]).margin(CATCH_MARGIN));  \
     }
-
-#define VECTOR_EQUAL_WARN(A, B) \
+#define VECTOR_APPROX_EQUAL_WARN(A, B) \
     REQUIRE(A.size() == B.size()); \
     for (int i__ = 0; i__ < A.size(); ++i__) {    \
-        WARN("lhs["<<i__<<"]="<<A[i__]<<"\trhs["<<i__<<"]="<<B[i__]<<'\n'); \
+        if (A[i__] - B[i__] >= CATCH_MARGIN && A[i__] - B[i__] <= CATCH_MARGIN) { \
+            WARN("lhs["<<i__<<"]="<<A[i__]<<"\trhs["<<i__<<"]="<<B[i__]<<'\n');  \
+        }  \
     }
 
 
@@ -94,22 +96,9 @@ TEST_CASE("formats") {
 }
 
 
-const auto tovec = [](const string& file, vector<double>& v) {
-    v.clear();
-    ifstream in(file);
-    string l;
-    while(std::getline(in, l)) 
-        v.push_back(stod(l));
-};
-const auto tofile = [](const string& file, const vector<double>& v) {
-    ofstream out(file);
-    for (auto x : v) 
-        out << x << '\n';
-};
-
 const auto triangularL = [](const std::string& matr) { return "./data/"+matr+"L.mtx"; };
 const auto triangularb = [](const std::string& matr) { return "./data/"+matr+"b.mtx"; };
-const auto triangularsol = [](const std::string& matr) { return "./data/sol_"+matr; };
+const auto triangularsol = [](const std::string& matr) { return "./data/"+matr+"x.mtx"; };
 
 using lsolveT = function<void (int, int*, int*, double*, double*)>;
 
@@ -124,18 +113,20 @@ const auto test_lsolve = [](lsolve_type type, const string& matr, verification_m
     auto L = CSC<double>(Lp.c_str(), true);
     auto b = CSC<double>(bp.c_str(), true);
     CSC<double> x;
-    vector<double> xvec, yvec, bvec, solx;
+    vector<double> xvec, yvec, bvec, solxvec;
 
-    tovec(triangularsol(matr), solx);
+    auto solx = CSC<double>(triangularsol(matr).c_str(), true);
+    csc_to_vec(solx, solxvec);
+
     lsolve(type, L, b, x);
 
     csc_to_vec(x, xvec);
     csc_to_vec(b, bvec);
 
     switch (meth) {
-        // 1. by verifiying with output of Julia's equivalent `x = L \ b`
+        // 1. by verifiying with output of matlab's equivalent `x = L \ b`
         case verification_method::backslash: {
-            VECTOR_EQUAL(solx, xvec);
+            VECTOR_APPROX_EQUAL(solxvec, xvec);
             break;
         }
         case verification_method::mult: {
@@ -143,7 +134,7 @@ const auto test_lsolve = [](lsolve_type type, const string& matr, verification_m
             //      does not work on ill-conditioned `L`
             yvec.resize(L.m, 0);
             spmv_csc(L.n, L.p, L.i, L.x, xvec.data(), yvec.data());
-            VECTOR_EQUAL(yvec, bvec);
+            VECTOR_APPROX_EQUAL(yvec, bvec);
             break;
         }
         default: break;
@@ -151,25 +142,24 @@ const auto test_lsolve = [](lsolve_type type, const string& matr, verification_m
 
 };
 
-const auto lsolve_types = {
-    lsolve_type::simple, lsolve_type::eigen, lsolve_type::reachset, lsolve_type::eigen_par
-};
 
 TEST_CASE("triangular_small") {
     for (const auto& matr : {"s_small", "s_medium"}) {
-        for (auto type : lsolve_types) {
-            SECTION(matr) {
-                test_lsolve(type, matr, verification_method::backslash);
-                test_lsolve(type, matr, verification_method::mult);
+        SECTION(matr) {
+            for (auto&& type : lsolve_types) {
+                test_lsolve(type.second, matr, verification_method::backslash);
+                test_lsolve(type.second, matr, verification_method::mult);
             }
         }
     }
 }
 
 TEST_CASE("triangular_large", "[.][long]") {
-    SECTION("s_torso") {
-        for (auto type : lsolve_types) {
-            test_lsolve(type, "s_torso", verification_method::backslash);
+    for (const auto& matr : {"s_torso", "s_tsopf"}) {
+        SECTION("matr") {
+            for (auto&& type : lsolve_types) {
+                test_lsolve(type.second, matr, verification_method::backslash);
+            }
         }
     }
 }

@@ -13,3 +13,7 @@ synccode:
 
 syncdata:
 	$(RSYNC) $(RSYNCTAGS) $(DAT_FOLDER) $(REMOTE):$(REMOTE_FOLDER)
+
+
+benchmark:
+	./build/main s_torso all 1-4 > ./scripts/torso

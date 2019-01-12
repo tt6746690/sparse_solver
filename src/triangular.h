@@ -1,17 +1,24 @@
 #ifndef __TRIANGULAR_H__
 #define __TRIANGULAR_H__
 
+#include <unordered_map>
 #include <string>
 #include "utils.h"
 #include "formats.h"
 
 enum class lsolve_type {
-    simple,
-    eigen,
-    reachset,
+    simple, eigen, reachset,
     eigen_par,
 };
+const std::unordered_map<std::string, lsolve_type> lsolve_types = {
+    {"simple",      lsolve_type::simple},
+    {"eigen",       lsolve_type::eigen},
+    {"reachset",    lsolve_type::reachset},
+    {"eigen_par",   lsolve_type::eigen_par},
+};
+
 std::string lsolve_str(lsolve_type type);
+
 
 //
 //  Lower triangular solver Lx=b
@@ -22,12 +29,15 @@ std::string lsolve_str(lsolve_type type);
 //      b : sparse rhs
 //  Outputs:
 //      x : solution to `Lx = b`, in dense representation
+
 template <typename T>
 void lsolve(
     lsolve_type type,
     const CSC<T>& L,
     const CSC<T>& b,
-    CSC<T>& x);
+    CSC<T>& x,
+    int n_thread = 1);
+
 
 
 // impl without an optimization
@@ -62,7 +72,8 @@ void lsolve(
     lsolve_type type,
     const CSC<T>& L,
     const CSC<T>& b,
-    CSC<T>& x)
+    CSC<T>& x,
+    int n_thread)
 {
     assert(b.n == 1);
     assert(L.m == L.n);
@@ -78,14 +89,14 @@ void lsolve(
             t1 = now();
             lsolve_simple(L.n, L.p, L.i, L.x, xvec.data());
             t2 = now();
-            printf("lsolve_simple, %f\n", diff(t1, t2));
+            printf("lsolve_simple, numeric, 1, %.16f\n", diff(t1, t2));
             break;
         }
         case lsolve_type::eigen: {
             t1 = now();
             lsolve_eigen(L.n, L.p, L.i, L.x, xvec.data());
             t2 = now();
-            printf("lsolve_eigen, %f\n", diff(t1, t2));
+            printf("lsolve_eigen, numeric, 1, %.16f\n", diff(t1, t2));
             break;
         }
         case lsolve_type::reachset: {
@@ -96,7 +107,7 @@ void lsolve(
             t1 = now();
             lsolve_eigen_par(L.n, L.p, L.i, L.x, xvec.data());
             t2 = now();
-            printf("lsolve_eigen_par, %f\n", diff(t1, t2));
+            printf("lsolve_eigen_par, numeric, %d, %.16f\n", n_thread, diff(t1, t2));
             break;
         }
         default:
@@ -115,21 +126,17 @@ void lsolve_reachset(
 {
     MTR_SCOPE_FUNC();
 
-    const int* Lp;
-    const int* Li;
-    const int* Bp;
-    const int* Bi;
-    const T* Lx;
-    const T* Bx;
-
-    Lp = L.p; Li = L.i; Bp = B.p; Bi = B.i;
-    Lx = L.x; Bx = B.x;
+    const int* Lp = L.p;
+    const int* Li = L.i;
+    const T*   Lx = L.x;
 
     time_point_t t1, t2, t3;
 
     t1 = now();
+
     std::vector<int> reachset;
     ::reachset(L, B, reachset);
+
     t2 = now();
 
     int i, j, p;
@@ -140,10 +147,11 @@ void lsolve_reachset(
             x[Li[p]] -= Lx[p] * x[j];
         }
     }
+
     t3 = now();
 
-    printf("lsolve_reachset_symbolic, %f\n", diff(t1, t2));
-    printf("lsolve_reachset_numeric, %f\n", diff(t2, t3));
+    printf("lsolve_reachset, symbolic, 1, %.16f\n", diff(t1, t2));
+    printf("lsolve_reachset, numeric,  1, %.16f\n", diff(t2, t3));
 }
 
 
