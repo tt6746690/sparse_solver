@@ -1,0 +1,10 @@
+%%MatrixMarket matrix coordinate real general
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/TSOPF/TSOPF_RS_b678_c2
+% name: TSOPF/TSOPF_RS_b678_c2 : b matrix
+%-------------------------------------------------------------------------------
+35696 1 3
+169 1 -.1175002157603823
+847 1 -1.0460530293888037
+1695 1 .9201
