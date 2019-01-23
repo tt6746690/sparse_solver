@@ -27,5 +27,5 @@ cd .. && ./build/tests
 
 # debugging
 lldb build/main
-process launch
+process launch -- s_small
 ```
